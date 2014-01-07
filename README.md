@@ -1,6 +1,7 @@
 #Detailed Playbooks
 
-A set of playbooks, detailed enough to be used by beginners and noobs, complete enough to be used in production.
+A set of playbooks, detailed enough to be used by beginners, complete enough to be used in production.
+The simplest, quickest, and most secure way for anyone to setup a server!!
 
 ##Background
 We use Ansible to manage our servers and Vagrant to ensure our developers have a common work environment.  
@@ -19,6 +20,10 @@ The documentation helps me keep track of why we do things, as well as hopefully 
 - Roundcube
 - ffmpeg
 - Change default SSH port
+- fail2ban
+- Gitlab
+- Openfire
+- Piwik
 
 ##FAQ:
 1. **What is Ansible?**  
@@ -58,46 +63,49 @@ Everything included is industry standard.
 The software included here is almost always way ahead of their propietary competitors'. Nonetheless, there is no warranty. Use at your own risk.
 
 
-## Getting Started.
-Ansible runs over SSH, even when operating on the same computer it is installed on. It is therefore easy to administer a remote server while only running Ansible on your local machine.  
-Nonetheless, for consistency, we assume that you are either seting up Vagrant locally, or using SSH to connect to a remote computer, and installing Ansible there. 
-All commands are meant to be run on the computer with Ansible. In the case of a VPS, that means using SSH to connect, and running there.
-Furthermore, since most users will be running this as their first steps, it is assumed you are running as rooot. If not, you will often have to run sudo.
+## Seting up your HQ.
+Ansible runs over SSH [even to perform local tasks], which makes it simple to manage multiple servers from your local computer. (Adding SERVERS does not require major setup.)  
+Throughout our docs, we assume that **HQ** is your local computer and **SERVER** is either a remote production server or a (Vagrant) virtual host that is being administered.  To run Ansible directly on the computer you are adminstering, setup the computer to connect to itself over SSH.  
+**Unless otherwise noted, all commands are to be run in HQ's console [or Git Bash on Windows], and all playbooks will affect SERVER.**  
 
-1. Install git: `apt-get install git`
-	- For Vagrant, install git on the local computer, since Ansible will run locally during virtual machine setup.
-	- For Windows users, install git on the local computer in order to have use of Git Bash (see "What is SSH?" above).
-2. Install Ansible (or Vagrant, which includes Ansible).
- 	- `apt-get install ansible`
- 	- If you are using Vagrant, install [VirtualBox] and [Vagrant]. 
-3. Setup SSH (done automatically by Vagrant).  
-	Ansible uses SSH to run, even when running on localhost. Your setup must allow you to connect to yourself over SSH, as though you were both the requesting and receiving computers.  
-	Setup is as follows (in Git Bash on Windows, or the command line anywhere else):
+1. Install git
+	- Linux: `sudo apt-get install git`
+	- OSX: `brew install git` (If you don't have [brew] yet, now's a good time to get it.)
+	- Windows: Install [msysgit]. Even if you will run Ansible directly on the SERVER, you should still install git on the local computer to have use of Git Bash (see "What is SSH?" above).
+2. Clone in the playbooks we will be using
+	- `git clone https://` 
+	- I encourage you to fork our repo and start working on it. We want feedback and pull requests, even if you are new to the field.
+3. Install Ansible (and Vagrant if desired)
+ 	- Linux: `sudo apt-get install ansible`
+ 	- Mac: `brew install ansible` or `sudo pip install ansible`
+ 	- Windows (Git Bash prompt): `sudo pip install ansible`
+ 	- For Vagrant, install [VirtualBox] and [Vagrant]. Vagrant includes its own instance of Ansible. 
+4. Setup SSH  
 	- Create the private key (id_rsa) and public key (id_rsa.pub) in the folder ~/.ssh/  
  	`ssh-keygen -t rsa -C "your_email@example.com"`
 	- Add the private key to your ssh agent:
  	`ssh-add id_rsa`  
  	(If you get an err, ssh-add is not running. `exec ssh-agent bash` & retry)
- 	- All "accepted" keys are kept in a file called authorized_keys. Copy id_rsa.pub into it.  
- 	`cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys`
+ 	- The SERVER maintains a list of all keys its willing to accept in a file called authorized_keys.  
+ 	Copy id_rsa.pub directly into authorized_keys to allow Ansible to make local changes.  
+ 	`cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys`  
+ 	(TODO: Test if newline is added before new key, otherwise ` (cat id_rsa.pub; echo) >> authorized_keys` or if needed `(cat id_rsa.pub; echo -e "\n") >> authorized_keys`).  
  	- Check that the owner and permissions are correct. SSH will NOT work if permissions are wrong or too permissive!
  		- `ls -ld ~/.ssh` Should be: `drwx------  00 file_owner ..`
  		- `ls -l ~/.ssh/id_rsa` Should be: `-rw------- 00 file_owner ..`
- 		- If owner is wrong, set manually or with whoami: 
- 			- `sudo chown $(whoami) -R file_or_folder`  
- 		- If permissions are wrong, set them: 
+ 		- If owner is wrong, set manually or with whoami:
+ 			- `sudo chown $(whoami) -R file_or_folder`
+ 		- If permissions are wrong, set them:
  			- `sudo chmod 700 ~/.ssh`
- 			- `sudo chmod 600 ~/.ssh/id_rsa` 
-4. Not related to Ansible, but if you are using a VPS, it is highly recommended that you change the default password.
-	- `passwd`
-5. Clone in the playbooks we will be using.
-	- `git clone https://` 
-	- I encourage you to fork our repo and start working on it. We are interested in feedback and commits, even if you are new to the field.
-
+ 			- `sudo chmod 600 ~/.ssh/id_rsa`
+	- Test: `ssh file_owner@localhost` (Use your name).
+	
 [Heidi]: http://www.heidisql.com/download.php
 [Putty]: http://www.chiark.greenend.org.uk/~sgtatham/putty/download.html
 [VirtualBox]: https://www.virtualbox.org/wiki/Downloads
 [Vagrant]: http://www.vagrantup.com/downloads.html
+[msysgit]: https://code.google.com/p/msysgit/downloads/list
+[brew]: http://brew.sh/
 
 ## Playbooks
 Instructions are given to Ansible through what are referred to as playbooks.
@@ -106,6 +114,7 @@ The following playbooks are included.
 1. Create a user for Ansible, called "deploy".
 2. Include common packages such as etckeeper, .
 3. Setup apt to update itself automatically.
+4. Lock down the SERVER (permissions, firewall, etc).
 4. Install Nginx and PHP and allow you to test them.
 5. Install Mysql and Postgres and secure them. 
 6. Install Postfix and test send a mail.

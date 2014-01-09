@@ -1,12 +1,12 @@
-#Detailed Playbooks
+#Vanguard 
+#Detailed Playbooks For Everyone
 
-A set of playbooks, detailed enough to be used by beginners, complete enough to be used in production.
-The simplest, quickest, and most secure way for anyone to setup a server!!
+**Documented for beginners, complete enough for production.  
+The simplest, quickest, and most secure way to setup a server!!**
 
 ##Background
-We use Ansible to manage our servers and Vagrant to ensure our developers have a common work environment.  
-The scripts herein are designed to make both of these tasks painless and consistent.   
-The documentation helps me keep track of why we do things, as well as hopefully enabling others to get started using some wonderful tools.
+We use Ansible to manage our servers and Vagrant to ensure our developers have a common work environment. The scripts herein are designed to make both of these tasks painless and consistent.   
+The documentation helps us keep track of why we do things as well as enabling others to use some wonderful tools.
 
 ##Includes
 - Nginx
@@ -46,59 +46,62 @@ as would be in production, while allowing you to access and edit your files loca
 (Primarrily done by forwarding ports on the virtual machie, and by syncing your local and virtual files.)
 
 3. **What is SSH?**  
-SSH is a secure way for one computer to connect to another, and Ansible uses it heavily.  
-Computer #1 has a private key which is never given out. Computer #2 is given a matching public key.   
-	The public key can be calculated from the private key, and can be given out freely. The private key cannot be calculated from the public key, which keeps it, well, private. One can safely use the same private key in many sites, and needn't worry that one of the sites will gain his credentials.
-	When #1 attempts to connect to #2, the keys are checked for a match. If no match is found, the connection is aborted.  
-
-	In non-Windows machines SSH is built into the command line.   
-	In Windows, use Git Bash (included with msysgit), a command line with SSH and other Unix tools built in. For ease of use, add a shortcut on your desktop to git bash. (For Vagrant users, edit the base folder in the shortcut properties).  
-	For other programs (such as [Heidi]), you may also need [Pageant][Putty] running. While not needed for these playbooks, the setup is as follows:
-	- Run the steps described in "Getting Statrted:SSH" to generate a key in Git Bash.
-	- Open [PuTTYgen][Putty]. Load in the just created existing id_rsa file.
-	- Save the private key as id_rsa.ppk. This creates a "putty ppk".
-	- Open Pageant (in system tray after opening) and add key -> id_rsa.ppk.
+SSH is a secure way for one computer to connect to another, and Ansible uses it heavily. On Mac & Linux SSH is built into the command line. On Windows, it's part of Git Bash (included with msysgit).  
+Computer #1 has a private key which is never given out. A matching "public" key [calculated from the private key] is given to Computer #2 and any other sites that need to identify you. (One can safely use the same keys for many locations, as there is no way to get the private key from the public one.) When #1 attempts to connect to #2, the keys are checked for a match. If no match is found, the connection is aborted.   
+	Vanguard sets up SSH for you, but you should definitely take the time to understand how it works!
+	
 4. **Is this safe to use?**  
 Everything included is industry standard.  
 The software included here is almost always way ahead of their propietary competitors'. Nonetheless, there is no warranty. Use at your own risk.
 
 
-## Seting up your HQ.
-Ansible runs over SSH [even to perform local tasks], which makes it simple to manage multiple servers from your local computer. (Adding SERVERS does not require major setup.)  
-Throughout our docs, we assume that **HQ** is your local computer and **SERVER** is either a remote production server or a (Vagrant) virtual host that is being administered.  To run Ansible directly on the computer you are adminstering, setup the computer to connect to itself over SSH.  
-**Unless otherwise noted, all commands are to be run in HQ's console [or Git Bash on Windows], and all playbooks will affect SERVER.**  
+## Setting up your HQ.
+Ansible is installed once - on the "control computer" only - and than uses SSH to connect to and manipulate other servers.     
+Throughout our docs, we assume that **HQ** is your local computer and **SERVER** is either a remote production server or a (Vagrant) virtual host that is being administered.  We will also discuss running Ansible directly on the computer being adminstered.  
+**Unless otherwise noted, all commands are to be run in HQ's terminal [or Git Bash on Windows], and all playbooks will affect SERVER.**  
 
 1. Install git
 	- Linux: `sudo apt-get install git`
 	- OSX: `brew install git` (If you don't have [brew] yet, now's a good time to get it.)
 	- Windows: Install [msysgit]. Even if you will run Ansible directly on the SERVER, you should still install git on the local computer to have use of Git Bash (see "What is SSH?" above).
 2. Clone in the playbooks we will be using
-	- `git clone https://` 
+	- `git clone https://github.com/siteroller/Vanguard.git` 
 	- I encourage you to fork our repo and start working on it. We want feedback and pull requests, even if you are new to the field.
-3. Install Ansible (and Vagrant if desired)
- 	- Linux: `sudo apt-get install ansible`
- 	- Mac: `brew install ansible` or `sudo pip install ansible`
- 	- Windows (Git Bash prompt): `sudo pip install ansible`
- 	- For Vagrant, install [VirtualBox] and [Vagrant]. Vagrant includes its own instance of Ansible. 
-4. Setup SSH  
-	- Create the private key (id_rsa) and public key (id_rsa.pub) in the folder ~/.ssh/  
- 	`ssh-keygen -t rsa -C "your_email@example.com"`
-	- Add the private key to your ssh agent:
- 	`ssh-add id_rsa`  
- 	(If you get an err, ssh-add is not running. `exec ssh-agent bash` & retry)
- 	- The SERVER maintains a list of all keys its willing to accept in a file called authorized_keys.  
- 	Copy id_rsa.pub directly into authorized_keys to allow Ansible to make local changes.  
- 	`cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys`  
- 	(TODO: Test if newline is added before new key, otherwise ` (cat id_rsa.pub; echo) >> authorized_keys` or if needed `(cat id_rsa.pub; echo -e "\n") >> authorized_keys`).  
- 	- Check that the owner and permissions are correct. SSH will NOT work if permissions are wrong or too permissive!
- 		- `ls -ld ~/.ssh` Should be: `drwx------  00 file_owner ..`
- 		- `ls -l ~/.ssh/id_rsa` Should be: `-rw------- 00 file_owner ..`
- 		- If owner is wrong, set manually or with whoami:
- 			- `sudo chown $(whoami) -R file_or_folder`
- 		- If permissions are wrong, set them:
- 			- `sudo chmod 700 ~/.ssh`
- 			- `sudo chmod 600 ~/.ssh/id_rsa`
-	- Test: `ssh file_owner@localhost` (Use your name).
+3. [Install] Ansible
+ 	- Linux: (Using apt or yum)
+ 		- `sudo add-apt-repository ppa:rquillo/ansible`
+ 		- `sudo apt-get update`
+ 		- `sudo apt-get install ansible`
+ 	- Windows (Git Bash prompt): 
+ 		- `sudo easy_install pip`
+ 		- `sudo pip install ansible` 
+ 	- Mac: `brew install ansible` or use `pip` as in Windows.
+ 	- For Vagrant users: Ansible is included with Vagrant and used for box setup. See #5.
+4. Setup the hosts file (list of SERVERS controlled by Ansible)
+	- Open the file /etc/ansible/hosts. If the file or the folder doesn't exist [eg. on a Mac] create them.
+	- Add SERVERS, one per line. Prepend nicknames in brackets. Set localhost connection to local, as follows (no need for SSH when editing locally):
+		
+			localhost     ansible_connection=local
+			
+			[SERVER]
+			12.345.67.890
+5. To use Vagrant:
+	- Install [VirtualBox] and [Vagrant].
+	- Choose the active directory in Vagrant (usually your webroot).  
+		- In Mac and Linux, open a terminal and `cd` to the desired location.
+		- In Windows, create a shortcut to Git Bash. Right click shortcut to edit properties. Set the path to your root. Double click to open terminal pointing to the root.
+	- Init an OS. The "suggested" is Ubuntu 12.04, but you can choose any from [vagrantbox.es](http://vagrantbox.es):  
+		- `vagrant init precise32 http://files.vagrantup.com/precise32.box`
+	- A file "Vagrantfile" has been added to your root. Edit it to run the ansible file upon startup:
+
+			Vagrant.configure("2") do |config|
+				config.vm.box = "precise32"
+				config.vm.provision "ansible" do |ansible|
+					ansible.playbook = "vanguard_detailed_playbooks/vagrant.yml"
+				end
+			end
+	- Start Vagrant: `vagrant up`. 
+	- Test that everything is working: http://localhost:2222
 	
 [Heidi]: http://www.heidisql.com/download.php
 [Putty]: http://www.chiark.greenend.org.uk/~sgtatham/putty/download.html
@@ -106,7 +109,7 @@ Throughout our docs, we assume that **HQ** is your local computer and **SERVER**
 [Vagrant]: http://www.vagrantup.com/downloads.html
 [msysgit]: https://code.google.com/p/msysgit/downloads/list
 [brew]: http://brew.sh/
-
+[Install]: http://docs.ansible.com/intro_installation.html
 ## Playbooks
 Instructions are given to Ansible through what are referred to as playbooks.
 The following playbooks are included.
@@ -123,6 +126,18 @@ The following playbooks are included.
 1. We have setup many playbooks, but for beginners, it is recommended to run only one at a time using "tags".
 	- (It is possible, if needed to end a playbook in the middle using fail module or failed_when.) 
 2. Call the hosts [default host, hosts file, and 'localhost,'] call the verbose debug.
+3. If you have rented a VPS, you probably have a username/password to login with.  
+	Vanguard will disable that and generate two users for you - one for your own use and for Ansible. The first time you login, you will need that username and password (change server to whatever nickname you gave your server in the hosts file):
+	- `ansible SERVER --ask-pass vps.yaml`
+	
 
 
+
+
+## Troubleshooting
+
+###Mac:
+1. If you wish to connect locally over SSH on a Mac, don't forget to enable the SSH server: System Preferences -> Sharing -> Remote Login
+
+###Windows:
 
